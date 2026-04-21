@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="description" content="SplitEase — Track personal expenses and split group bills easily"/>
+<title>SplitEase — Expense Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="css/style.css"/>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════
+     AUTH SCREEN
+════════════════════════════════════════════════════════════ -->
+<div id="auth-screen" class="screen active">
+  <div class="auth-bg">
+    <div class="blob b1"></div>
+    <div class="blob b2"></div>
+    <div class="blob b3"></div>
+  </div>
+  <div class="auth-container">
+    <div class="brand">
+      <span class="brand-icon">◈</span>
+      <span class="brand-name">SplitEase</span>
+    </div>
+    <div class="auth-card">
+      <div class="auth-tabs">
+        <button class="auth-tab active" data-tab="login">Sign In</button>
+        <button class="auth-tab" data-tab="register">Sign Up</button>
+      </div>
+
+      <!-- LOGIN -->
+      <div id="login-form" class="auth-form active">
+        <h2>Welcome back</h2>
+        <p class="subtitle">Track expenses, split bills, stay even.</p>
+        <div class="field">
+          <label>Email</label>
+          <input type="email" id="login-email" placeholder="you@email.com" autocomplete="email"/>
+        </div>
+        <div class="field">
+          <label>Password</label>
+          <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password"/>
+        </div>
+        <div id="login-error" class="form-error" role="alert"></div>
+        <button class="btn-primary full" id="login-btn" onclick="login()">Sign In</button>
+        <div class="demo-hint">Demo: <strong>alice@demo.com</strong> / <strong>Password1</strong></div>
+      </div>
+
+      <!-- REGISTER -->
+      <div id="register-form" class="auth-form">
+        <h2>Create account</h2>
+        <p class="subtitle">Join and start splitting expenses.</p>
+        <div class="field">
+          <label>Full Name</label>
+          <input type="text" id="reg-name" placeholder="Jane Doe" autocomplete="name"/>
+        </div>
+        <div class="field">
+          <label>Email</label>
+          <input type="email" id="reg-email" placeholder="you@email.com" autocomplete="email"/>
+        </div>
+        <div class="field">
+          <label>Password</label>
+          <input type="password" id="reg-password" placeholder="Min 8 chars, 1 uppercase, 1 number" autocomplete="new-password"/>
+        </div>
+        <div class="field">
+          <label>Confirm Password</label>
+          <input type="password" id="reg-password-confirm" placeholder="Re-enter password" autocomplete="new-password"/>
+        </div>
+        <div class="field">
+          <label>WhatsApp Number <span class="field-hint">(optional — for notifications)</span></label>
+          <input type="tel" id="reg-phone" placeholder="e.g. 919876543210 (with country code)"/>
+        </div>
+        <div id="reg-error" class="form-error" role="alert"></div>
+        <button class="btn-primary full" id="reg-btn" onclick="register()">Create Account</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     MAIN APP
+════════════════════════════════════════════════════════════ -->
+<div id="app-screen" class="screen">
+
+  <!-- SIDEBAR -->
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <span class="brand-icon">◈</span>
+      <span class="brand-name">SplitEase</span>
+      <button class="sidebar-close" onclick="toggleSidebar()" aria-label="Close menu">✕</button>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Main</div>
+      <a class="nav-item active" data-page="dashboard" onclick="navigate('dashboard')">
+        <span class="nav-icon">⊞</span> Dashboard
+      </a>
+      <a class="nav-item" data-page="personal" onclick="navigate('personal')">
+        <span class="nav-icon">◎</span> Personal
+      </a>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Groups</div>
+      <div id="group-nav-list"></div>
+      <button class="nav-add-btn" onclick="openModal('create-group-modal')">+ New Group</button>
+    </div>
+    <div class="sidebar-footer">
+      <div class="user-pill" id="user-pill"></div>
+      <button class="profile-btn" onclick="openProfileModal()">⚙ Settings &amp; WhatsApp</button>
+      <button class="logout-btn" onclick="logout()">Sign Out</button>
+    </div>
+  </nav>
+
+  <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+  <!-- MAIN CONTENT -->
+  <main class="main-content">
+    <header class="topbar">
+      <button class="menu-btn" onclick="toggleSidebar()" aria-label="Open menu">☰</button>
+      <div class="topbar-title" id="topbar-title">Dashboard</div>
+      <div class="topbar-actions" id="topbar-actions"></div>
+    </header>
+
+    <div id="page-loading" class="page-loading hidden"><div class="spinner"></div></div>
+
+    <!-- DASHBOARD PAGE -->
+    <div id="page-dashboard" class="page active">
+      <div class="page-inner">
+        <div class="welcome-row">
+          <div>
+            <h1 class="page-title" id="dashboard-greeting">Hello!</h1>
+            <p class="page-sub">Here's your financial overview.</p>
+          </div>
+        </div>
+        <div id="pending-invites-banner"></div>
+        <div class="stats-grid" id="stats-grid"></div>
+        <div class="two-col">
+          <div class="card">
+            <div class="card-head"><span class="card-title">Recent Activity</span></div>
+            <div id="recent-activity"><div class="empty-state"><div class="spinner-sm"></div></div></div>
+          </div>
+          <div class="card">
+            <div class="card-head"><span class="card-title">My Groups</span></div>
+            <div id="dashboard-groups"><div class="empty-state"><div class="spinner-sm"></div></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PERSONAL PAGE -->
+    <div id="page-personal" class="page">
+      <div class="page-inner">
+        <div class="page-head-row">
+          <div>
+            <h1 class="page-title">Personal Expenses</h1>
+            <p class="page-sub">Track your individual spending.</p>
+          </div>
+          <button class="btn-primary" onclick="openAddExpenseModal('personal')">+ Add Expense</button>
+        </div>
+        <div class="stats-grid" id="personal-stats"></div>
+        <div class="card">
+          <div class="card-head">
+            <span class="card-title">All Expenses</span>
+            <div class="filter-row">
+              <select id="personal-cat-filter" onchange="renderPersonalPage()">
+                <option value="">All Categories</option>
+                <option>Food</option><option>Transport</option><option>Shopping</option>
+                <option>Entertainment</option><option>Health</option><option>Bills</option><option>Other</option>
+              </select>
+            </div>
+          </div>
+          <div id="personal-expense-list"><div class="empty-state"><div class="spinner-sm"></div></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- GROUP PAGE -->
+    <div id="page-group" class="page">
+      <div class="page-inner">
+        <div class="page-head-row" id="group-page-header"></div>
+        <div class="stats-grid" id="group-stats"></div>
+        <div class="two-col">
+          <div class="card">
+            <div class="card-head">
+              <span class="card-title">Expenses</span>
+              <button class="btn-sm" onclick="openAddExpenseModal('group')">+ Add</button>
+            </div>
+            <div id="group-expense-list"><div class="empty-state"><div class="spinner-sm"></div></div></div>
+          </div>
+          <div class="card">
+            <div class="card-head"><span class="card-title">Balances &amp; Splits</span></div>
+            <div id="group-balances"></div>
+            <div class="card-head" style="margin-top:1.5rem">
+              <span class="card-title">Members</span>
+              <button class="btn-sm" onclick="openModal('invite-modal')">+ Invite</button>
+            </div>
+            <div id="group-members"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     MODALS
+════════════════════════════════════════════════════════════ -->
+
+<!-- Create Group -->
+<div id="create-group-modal" class="modal-overlay" onclick="closeModalOutside(event,'create-group-modal')">
+  <div class="modal">
+    <div class="modal-head"><h3>Create Group</h3><button onclick="closeModal('create-group-modal')">✕</button></div>
+    <div class="field"><label>Group Name</label><input type="text" id="new-group-name" placeholder="e.g. Goa Trip 2025"/></div>
+    <div class="field"><label>Description <span class="field-hint">(optional)</span></label><input type="text" id="new-group-desc" placeholder="Short description"/></div>
+    <div class="field"><label>Color</label><div class="color-picker" id="group-color-picker"></div></div>
+    <div id="create-group-error" class="form-error" role="alert"></div>
+    <div class="modal-actions">
+      <button class="btn-ghost" onclick="closeModal('create-group-modal')">Cancel</button>
+      <button class="btn-primary" id="create-group-btn" onclick="createGroup()">Create</button>
+    </div>
+  </div>
+</div>
+
+<!-- Invite Member -->
+<div id="invite-modal" class="modal-overlay" onclick="closeModalOutside(event,'invite-modal')">
+  <div class="modal">
+    <div class="modal-head"><h3>Invite Member</h3><button onclick="closeModal('invite-modal')">✕</button></div>
+    <p class="modal-desc">Enter the email of a registered SplitEase user.</p>
+    <div class="field"><label>Email Address</label><input type="email" id="invite-email" placeholder="friend@email.com"/></div>
+    <div id="invite-error" class="form-error" role="alert"></div>
+    <div id="invite-success" class="form-success" role="status"></div>
+    <div class="modal-actions">
+      <button class="btn-ghost" onclick="closeModal('invite-modal')">Cancel</button>
+      <button class="btn-primary" id="invite-btn" onclick="inviteMember()">Send Invite</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Expense -->
+<div id="add-expense-modal" class="modal-overlay" onclick="closeModalOutside(event,'add-expense-modal')">
+  <div class="modal">
+    <div class="modal-head"><h3 id="expense-modal-title">Add Expense</h3><button onclick="closeModal('add-expense-modal')">✕</button></div>
+    <div class="field"><label>Title</label><input type="text" id="exp-title" placeholder="e.g. Dinner at Café"/></div>
+    <div class="field-row">
+      <div class="field"><label>Amount (₹)</label><input type="number" id="exp-amount" placeholder="0.00" min="0.01" step="0.01" oninput="updateSplitInfo()"/></div>
+      <div class="field"><label>Category</label>
+        <select id="exp-category">
+          <option>Food</option><option>Transport</option><option>Shopping</option>
+          <option>Entertainment</option><option>Health</option><option>Bills</option><option>Other</option>
+        </select>
+      </div>
+    </div>
+    <div class="field"><label>Date</label><input type="date" id="exp-date"/></div>
+    <div class="field"><label>Note <span class="field-hint">(optional)</span></label><input type="text" id="exp-note" placeholder="Any additional info"/></div>
+    <div id="exp-split-section" style="display:none">
+      <div class="split-label">Split Among</div>
+      <div id="exp-split-members"></div>
+      <div class="split-info" id="split-info-text"></div>
+    </div>
+    <div id="add-expense-error" class="form-error" role="alert"></div>
+    <div class="modal-actions">
+      <button class="btn-ghost" onclick="closeModal('add-expense-modal')">Cancel</button>
+      <button class="btn-primary" id="add-expense-btn" onclick="addExpense()">Add Expense</button>
+    </div>
+  </div>
+</div>
+
+<!-- Settle Up -->
+<div id="settle-modal" class="modal-overlay" onclick="closeModalOutside(event,'settle-modal')">
+  <div class="modal">
+    <div class="modal-head"><h3>Settle Up</h3><button onclick="closeModal('settle-modal')">✕</button></div>
+    <div id="settle-content"></div>
+    <div id="settle-error" class="form-error" role="alert"></div>
+    <div class="modal-actions">
+      <button class="btn-ghost" onclick="closeModal('settle-modal')">Cancel</button>
+      <button class="btn-primary" id="settle-btn" onclick="confirmSettle()">Mark as Settled</button>
+    </div>
+  </div>
+</div>
+
+<!-- Expense Detail -->
+<div id="expense-detail-modal" class="modal-overlay" onclick="closeModalOutside(event,'expense-detail-modal')">
+  <div class="modal">
+    <div class="modal-head"><h3>Expense Detail</h3><button onclick="closeModal('expense-detail-modal')">✕</button></div>
+    <div id="expense-detail-content"></div>
+    <div class="modal-actions">
+      <button class="btn-ghost" onclick="closeModal('expense-detail-modal')">Close</button>
+      <button class="btn-danger" id="delete-expense-btn" style="display:none">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- Profile & WhatsApp Settings -->
+<div id="profile-modal" class="modal-overlay" onclick="closeModalOutside(event,'profile-modal')">
+  <div class="modal">
+    <div class="modal-head"><h3>Profile &amp; WhatsApp</h3><button onclick="closeModal('profile-modal')">✕</button></div>
+    <p class="modal-desc">Add your WhatsApp number to get notified when someone invites you, adds an expense, or settles up.</p>
+    <div class="field"><label>Full Name</label><input type="text" id="profile-name"/></div>
+    <div class="field">
+      <label>WhatsApp Number <span class="field-hint">(with country code, digits only)</span></label>
+      <input type="tel" id="profile-phone" placeholder="e.g. 919876543210"/>
+      <div class="field-hint" style="margin-top:.4rem">India: 91XXXXXXXXXX &nbsp;·&nbsp; US: 1XXXXXXXXXX</div>
+    </div>
+    <div class="toggle-row">
+      <input type="checkbox" id="profile-wa-enabled"/>
+      <label for="profile-wa-enabled">Enable WhatsApp notifications</label>
+    </div>
+    <div id="profile-error" class="form-error" role="alert"></div>
+    <div id="profile-success" class="form-success" role="status"></div>
+    <div class="modal-actions">
+      <button class="btn-ghost" onclick="closeModal('profile-modal')">Cancel</button>
+      <button class="btn-primary" id="profile-save-btn" onclick="saveProfile()">Save</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<script src="js/api.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

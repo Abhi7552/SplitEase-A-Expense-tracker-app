@@ -1,0 +1,27 @@
+# render.yaml — Render.com deployment configuration
+# Free tier: https://render.com
+# Deploy: connect your GitHub repo → Render auto-detects this file
+
+services:
+  - type: web
+    name: splitease
+    runtime: node
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGO_URI
+        sync: false        # set manually in Render dashboard
+      - key: JWT_SECRET
+        sync: false
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: CLIENT_URL
+        sync: false        # set to your Render URL e.g. https://splitease.onrender.com
+      - key: TWILIO_ACCOUNT_SID
+        sync: false
+      - key: TWILIO_AUTH_TOKEN
+        sync: false
+      - key: TWILIO_WA_FROM
+        value: whatsapp:+14155238886
