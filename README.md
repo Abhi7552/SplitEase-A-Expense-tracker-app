@@ -393,6 +393,7 @@ This minimizes the number of payments needed across a group. For N members, wors
 3. Move balance computation to a **background job** for very large groups
 4. Use MongoDB Atlas **auto-scaling** on M10+
 
+<<<<<<< HEAD
 ```bash
 # On your server:
 git clone <your-repo>
@@ -430,6 +431,8 @@ sudo apt install certbot python3-certbot-nginx
 sudo certbot --nginx -d yourdomain.com
 ```
 
+=======
+>>>>>>> f66ae226f414e8bf2f508ba0816d06f30932c7d1
 ---
 
 ## Security Features
