@@ -6,6 +6,7 @@ const Expense    = require('../models/Expense');
 const Settlement = require('../models/Settlement');
 const { protect } = require('../middleware/auth');
 const wa         = require('../services/whatsapp');
+const gmail      = require('../services/gmail');
 
 const router = express.Router();
 router.use(protect);
@@ -113,7 +114,7 @@ router.post('/:id/invite',
       if (!group.hasMember(req.user._id)) return res.status(403).json({ message: 'Not a group member.' });
 
       const inviteeEmail = req.body.email.trim().toLowerCase();
-      const invitee = await User.findOne({ email: inviteeEmail });
+      const invitee = await User.findOne({ email: inviteeEmail }).select('name email phone whatsappEnabled emailNotifications isPro whatsappProEnabled whatsappMessageCount');
       if (!invitee) return res.status(404).json({ message: 'No account found with that email.' });
       if (group.hasMember(invitee._id)) return res.status(409).json({ message: 'User is already in the group.' });
 
@@ -125,10 +126,20 @@ router.post('/:id/invite',
       group.invites.push({ invitee: invitee._id, invitedBy: req.user._id });
       await group.save();
 
-      // ── WhatsApp: notify the invitee ──────────────────────
+      // ── Notifications for the invitee ──────────────────────
+      // WhatsApp notification
       if (invitee.whatsappEnabled !== false) {
         wa.notifyGroupInvite(
-          { name: invitee.name, phone: invitee.phone },
+          { name: invitee.name, phone: invitee.phone, whatsappEnabled: invitee.whatsappEnabled, isPro: invitee.isPro, whatsappProEnabled: invitee.whatsappProEnabled, whatsappMessageCount: invitee.whatsappMessageCount },
+          { name: req.user.name },
+          { name: group.name }
+        );
+      }
+
+      // Gmail notification
+      if (invitee.emailNotifications.inviteReceived) {
+        gmail.notifyGroupInvite(
+          { name: invitee.name, email: invitee.email },
           { name: req.user.name },
           { name: group.name }
         );
@@ -148,7 +159,7 @@ router.post('/:id/invite/:inviteId/respond',
   async (req, res) => {
     if (!validate(req, res)) return;
     try {
-      const group = await Group.findById(req.params.id).populate('owner', 'name phone whatsappEnabled');
+      const group = await Group.findById(req.params.id).populate('owner', 'name phone email emailNotifications whatsappEnabled isPro whatsappProEnabled whatsappMessageCount');
       if (!group) return res.status(404).json({ message: 'Group not found.' });
 
       const invite = group.invites.id(req.params.inviteId);
@@ -162,13 +173,25 @@ router.post('/:id/invite/:inviteId/respond',
       if (req.body.action === 'accepted') {
         group.members.push({ user: req.user._id, role: 'member' });
 
-        // ── WhatsApp: notify the group owner ───────────────
-        if (group.owner?.whatsappEnabled !== false) {
-          wa.notifyInviteAccepted(
-            { name: group.owner.name, phone: group.owner.phone },
-            { name: req.user.name },
-            { name: group.name }
-          );
+        // ── Notifications for the group owner ───────────────
+        if (group.owner) {
+          // WhatsApp notification
+          if (group.owner.whatsappEnabled !== false) {
+            wa.notifyInviteAccepted(
+              { name: group.owner.name, phone: group.owner.phone, whatsappEnabled: group.owner.whatsappEnabled, isPro: group.owner.isPro, whatsappProEnabled: group.owner.whatsappProEnabled, whatsappMessageCount: group.owner.whatsappMessageCount },
+              { name: req.user.name },
+              { name: group.name }
+            );
+          }
+
+          // Gmail notification
+          if (group.owner.emailNotifications.inviteReceived) {
+            gmail.notifyInviteAccepted(
+              { name: group.owner.name, email: group.owner.email },
+              { name: req.user.name },
+              { name: group.name }
+            );
+          }
         }
       }
 

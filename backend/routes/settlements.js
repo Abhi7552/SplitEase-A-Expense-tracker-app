@@ -5,6 +5,7 @@ const Group      = require('../models/Group');
 const User       = require('../models/User');
 const { protect } = require('../middleware/auth');
 const wa         = require('../services/whatsapp');
+const gmail      = require('../services/gmail');
 
 const router = express.Router();
 router.use(protect);
@@ -32,17 +33,30 @@ router.post('/',
       const settlement = await Settlement.create({
         group: groupId, fromUser: req.user._id, toUser: toUserId, amount, note,
       });
-      await settlement.populate('fromUser toUser', 'name email avatar phone whatsappEnabled');
+      await settlement.populate('fromUser toUser', 'name email avatar phone whatsappEnabled emailNotifications isPro whatsappProEnabled whatsappMessageCount');
 
-      // ── WhatsApp: notify the recipient ─────────────────────
+      // ── Notifications for the recipient ─────────────────────
       const recipient = settlement.toUser;
-      if (recipient?.whatsappEnabled !== false) {
-        wa.notifySettlement(
-          { name: recipient.name,      phone: recipient.phone },
-          { name: settlement.fromUser.name },
-          amount,
-          { name: group.name }
-        );
+      if (recipient) {
+        // WhatsApp notification
+        if (recipient.whatsappEnabled !== false) {
+          wa.notifySettlement(
+            { name: recipient.name, phone: recipient.phone, whatsappEnabled: recipient.whatsappEnabled, isPro: recipient.isPro, whatsappProEnabled: recipient.whatsappProEnabled, whatsappMessageCount: recipient.whatsappMessageCount },
+            { name: settlement.fromUser.name },
+            amount,
+            { name: group.name }
+          );
+        }
+
+        // Gmail notification
+        if (recipient.emailNotifications.settlementUpdate) {
+          gmail.notifySettlement(
+            { name: recipient.name, email: recipient.email },
+            { name: settlement.fromUser.name },
+            amount,
+            { name: group.name }
+          );
+        }
       }
 
       res.status(201).json({ settlement });

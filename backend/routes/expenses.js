@@ -5,6 +5,7 @@ const Group    = require('../models/Group');
 const User     = require('../models/User');
 const { protect } = require('../middleware/auth');
 const wa       = require('../services/whatsapp');
+const gmail    = require('../services/gmail');
 
 const router = express.Router();
 router.use(protect);
@@ -96,19 +97,38 @@ router.post('/',
 
         await Group.findByIdAndUpdate(groupId, { updatedAt: new Date() });
 
-        // ── WhatsApp: notify all OTHER split members ────────
-        // Fetch full user docs (with phone) for the split members
+        // ── Notifications for split members ────────
+        // Fetch full user docs (with phone, email) for the split members
         const otherMemberIds = splitAmong.filter(id => id !== req.user._id.toString());
         if (otherMemberIds.length > 0) {
-          const otherUsers = await User.find({ _id: { $in: otherMemberIds }, whatsappEnabled: { $ne: false } })
-                                       .select('name phone whatsappEnabled');
-          wa.notifyExpenseAdded(
-            otherUsers.map(u => ({ name: u.name, phone: u.phone })),
-            { name: req.user.name },
-            { title, amount, category },
-            { name: group.name },
-            shareAmount
-          );
+          const otherUsers = await User.find({ _id: { $in: otherMemberIds } })
+                                       .select('name phone email whatsappEnabled emailNotifications isPro whatsappProEnabled whatsappMessageCount');
+          
+          // Send WhatsApp notifications
+          otherUsers.forEach(u => {
+            if (u.whatsappEnabled !== false) {
+              wa.notifyExpenseAdded(
+                [{ name: u.name, phone: u.phone, whatsappEnabled: u.whatsappEnabled, isPro: u.isPro, whatsappProEnabled: u.whatsappProEnabled, whatsappMessageCount: u.whatsappMessageCount }],
+                { name: req.user.name },
+                { title, amount, category },
+                { name: group.name },
+                shareAmount
+              );
+            }
+          });
+
+          // Send Gmail notifications
+          otherUsers.forEach(u => {
+            if (u.emailNotifications.expenseAdded) {
+              gmail.notifyExpenseAdded(
+                [{ name: u.name, email: u.email }],
+                { name: req.user.name },
+                { title, amount, category },
+                { name: group.name },
+                shareAmount
+              );
+            }
+          });
         }
 
         return res.status(201).json({ expense });

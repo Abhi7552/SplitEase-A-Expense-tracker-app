@@ -114,12 +114,12 @@ splitease-mongo/
 3. Select **Node.js** driver, version **5.5 or later**
 4. Copy the connection string — it looks like:
    ```
-   mongodb+srv://splitease_user:<password>@cluster0.abc123.mongodb.net/?retryWrites=true&w=majority
+   mongodb+srv://dbname:<password>@cluster0.abc123.mongodb.net/?retryWrites=true&w=majority
    ```
 5. Replace `<password>` with your actual password
 6. Add your database name before the `?`:
    ```
-   mongodb+srv://splitease_user:yourpassword@cluster0.abc123.mongodb.net/splitease?retryWrites=true&w=majority
+   mongodb+srv://dbname:yourpassword@cluster0.abc123.mongodb.net/splitease?retryWrites=true&w=majority
    ```
 
 ---
@@ -392,36 +392,6 @@ This minimizes the number of payments needed across a group. For N members, wors
 2. Add **indexes** on `expenseDate` range queries
 3. Move balance computation to a **background job** for very large groups
 4. Use MongoDB Atlas **auto-scaling** on M10+
-
----
-
-## Deployment Guide
-
-### Option A — Railway (easiest, free tier available)
-
-```bash
-# 1. Push your code to GitHub
-
-# 2. Go to https://railway.app → New Project → Deploy from GitHub
-
-# 3. Add environment variables in Railway dashboard:
-#    MONGO_URI, JWT_SECRET, NODE_ENV=production, CLIENT_URL=https://your-app.railway.app
-
-# 4. Railway auto-detects Node.js and runs: npm start
-```
-
-### Option B — Render
-
-```bash
-# 1. Go to https://render.com → New Web Service → Connect GitHub repo
-
-# 2. Set:
-#    Build Command: npm install
-#    Start Command: npm start
-#    Environment: add all .env variables
-```
-
-### Option C — VPS (Ubuntu + PM2 + Nginx)
 
 ```bash
 # On your server:

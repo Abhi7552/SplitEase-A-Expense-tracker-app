@@ -25,7 +25,7 @@ router.post('/register',
     body('name').trim().notEmpty().withMessage('Name is required').isLength({ max: 100 }),
     body('email').isEmail().withMessage('Valid email required'),
     body('password').isLength({ min: 8 }).withMessage('Password must be at least 8 characters'),
-    body('phone').optional().trim(),
+    body('phone').optional('With Country code like 918888888888').trim(),
   ],
   async (req, res) => {
     const errors = validationResult(req);
@@ -56,7 +56,7 @@ router.post('/register',
 // POST /api/auth/login
 router.post('/login',
   [
-    body('email').isEmail().withMessage('Valid email required'),
+    body('email').isEmail().withMessage('Enter your email address'),
     body('password').notEmpty().withMessage('Password is required'),
   ],
   async (req, res) => {
